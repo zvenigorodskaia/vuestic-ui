@@ -17,7 +17,7 @@
       <div class="va-input-wrapper__field">
         <div
           v-if="$slots.prependInner"
-          class="va-input__container"
+          class="va-input-wrapper__prepend-inner"
           ref="container"
           :style="containerStyle"
           @click="$emit('click-prepend-inner', $event)"
@@ -49,12 +49,22 @@
           color="success"
           name="va-check-circle"
           size="small"
+          class="va-input-wrapper__icon va-input-wrapper__icon--success"
         />
         <va-icon
           v-if="error"
           color="danger"
           name="va-warning"
           size="small"
+          class="va-input-wrapper__icon va-input-wrapper__icon--error"
+        />
+        <va-icon
+          v-if="$props.loading"
+          :color="$props.color"
+          size="small"
+          name="va-loading"
+          spin="counter-clockwise"
+          class="va-input-wrapper__icon va-input-wrapper__icon--loading"
         />
         <slot name="icon" />
 
@@ -123,6 +133,7 @@ export default defineComponent({
     focused: { type: Boolean, default: false },
     error: { type: Boolean, default: false },
     success: { type: Boolean, default: false },
+    loading: { type: Boolean, default: false },
     requiredMark: { type: Boolean, default: false },
   },
 
@@ -236,16 +247,6 @@ export default defineComponent({
 
     @include va-background(var(--va-input-color), null, -1);
 
-    /* Creates gap between prepend, content, validation icons, append */
-    & > * {
-      padding-right: var(--va-input-content-items-gap);
-      line-height: 0;
-
-      &:last-child {
-        padding-right: 0;
-      }
-    }
-
     input,
     textarea {
       color: v-bind(textColorComputed);
@@ -324,14 +325,6 @@ export default defineComponent({
     display: flex;
     align-items: center;
     justify-content: center;
-
-    & > * {
-      margin-right: calc(var(--va-input-content-items-gap) / 4);
-
-      &:last-child {
-        margin-right: 0;
-      }
-    }
 
     &__reset {
       &:focus {
