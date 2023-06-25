@@ -29,7 +29,7 @@
               >
                 <component
                   :is="item.image"
-                  style="width: 100%; min-height: 100px;"
+                  class="w-full min-h-[100px]"
                 />
               </div>
             </va-card-content>
@@ -110,7 +110,7 @@ const columns = computed(() =>
 $gap: 1rem;
 
 .docs-roadmap {
-  margin: 0 -$gap;
+  margin: 0 (-$gap);
 
   &__columns {
     margin: calc($gap / 2);

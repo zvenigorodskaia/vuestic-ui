@@ -1,4 +1,5 @@
 import { DefineComponent } from 'vue'
+import { MetaObject } from '#head';
 import example from '../blocks/example'
 import title from '../blocks/title'
 import paragraph from '../blocks/paragraph'
@@ -17,7 +18,7 @@ import link from '../blocks/link'
 import list from '../blocks/list'
 import table from '../blocks/table'
 import cards from '../blocks/cards'
-import { type ManualApiOptions } from '../blocks/api/types'
+import { APIDescriptionOptions, type ManualApiOptions } from '../blocks/api/types'
 
 // Need to define type in collapse without recursion
 const blocksWithoutCollapse = {
@@ -53,6 +54,8 @@ export type Block = ReturnType<GlobalBlock[keyof typeof block]>
 export type ConcreteBlock<T extends string, B = Block> = B extends { type: T } ? B : never
 
 export type PageConfigOptions = {
+  head?: MetaObject,
+
   meta?: {
     title?: string;
     // TODO: Add more
@@ -62,8 +65,6 @@ export type PageConfigOptions = {
   },
 
   blocks: Block[],
-
-  translations?: Record<string, Record<string, string>>,
 }
 
 export const defineManualApi = (options: ManualApiOptions) => options
@@ -76,3 +77,5 @@ export type DefinePageConfig = typeof definePageConfig
 export type UnwrapPageConfigBlock<T extends Record<string, any>> = {
   _blockComponent: DefineComponent,
 } & T
+
+export const defineApiDescription = (options: APIDescriptionOptions) => options;

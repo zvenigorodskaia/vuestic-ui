@@ -1,5 +1,5 @@
 import { existsSync } from 'fs'
-import { extname, dirname, basename } from 'path'
+import { extname, dirname, basename, relative, resolve } from 'pathe'
 import { createDistTransformPlugin } from './fabrics/create-dist-transform-plugin'
 
 const parsePath = (path: string) => {
@@ -12,8 +12,17 @@ const parsePath = (path: string) => {
   }
 }
 
+/**
+ * Checks if file is Vuestic component script source
+ * Component always have script which is stored in file with name like Va[ComponentName].vue_vue_type_script_lang
+ */
 const isVuesticComponent = (filename: string) => {
-  return /Va.*\.(js|mjs)$/.test(filename)
+  // Va[ComponentName].vue_vue_type_script_lang
+  return /Va\w*.vue_vue_type_script_lang.*\.mjs$/.test(filename)
+}
+
+const extractVuesticComponentName = (filename: string) => {
+  return filename.match(/(Va\w*).vue_vue_type_script_lang.*/)?.[1]
 }
 
 const SOURCE_MAP_COMMENT_FRAGMENT = '//# sourceMappingURL='
@@ -27,15 +36,32 @@ export const appendComponentCss = createDistTransformPlugin({
 
   dir: (outDir) => `${outDir}/src/components`,
 
-  transform: (componentContent, path) => {
+  transform (componentContent, path) {
     if (!isVuesticComponent(path)) { return }
 
     const { name, dir } = parsePath(path)
 
-    const cssFilePath = `${dir}/${name}.css`
+    const componentName = extractVuesticComponentName(name)
 
-    if (!existsSync(cssFilePath)) { return }
+    if (!componentName) {
+      throw new Error(`Can't extract component name from ${name}`)
+    }
 
-    return appendBeforeSourceMapComment(componentContent, `\nimport './${name}.css';`)
+    const distPath = resolve(this.outDir, '..', '..')
+    const relativeDistPath = relative(dir, distPath)
+    const relativeFilePath = relativeDistPath + '/' + componentName.replace(/-.*$/, '') + '.css'
+
+    // There are few cases how vite can store css files (depends on vite version, but we handle both for now):
+    // CSS stored in dist folder (root)
+    if (existsSync(resolve(dir, relativeFilePath))) {
+      return appendBeforeSourceMapComment(componentContent, `\nimport '${relativeFilePath}';`)
+    }
+
+    // CSS stored in component folder
+    const cssFilePath = `${dir}/${componentName}.css`
+
+    if (existsSync(cssFilePath)) {
+      return appendBeforeSourceMapComment(componentContent, `\nimport './${componentName}.css';`)
+    }
   },
 })

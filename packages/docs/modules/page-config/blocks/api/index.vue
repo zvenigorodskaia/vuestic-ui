@@ -1,10 +1,17 @@
 <script setup lang="ts">
 import { DefineComponent, PropType } from 'vue';
-import { parseComponent } from './component-parser'
 import merge from 'lodash/merge'
 import camelCase from 'lodash/camelCase'
-import ApiTable from './components/api-table.vue';
-import { CssVariables, ManualApiOptions, VisualOptions } from './types';
+import ApiTable from './components/ApiDocs.vue';
+import {
+  CssVariables,
+  ManualApiOptions,
+  VisualOptions,
+  APIDescriptionOptions,
+  APIDescriptionType,
+  ComponentMeta,
+} from './types';
+import commonDescription from "./common-description";
 
 const props = defineProps({
   componentName: {
@@ -23,36 +30,30 @@ const props = defineProps({
     type: Array as PropType<CssVariables>,
     required: true,
   },
+  meta: {
+    type: Object as PropType<ComponentMeta>,
+    required: true
+  },
   visualOptions: {
     type: Object as PropType<VisualOptions>,
     default: () => ({}),
+  },
+  descriptionOptions: {
+    type: Object as PropType<APIDescriptionOptions>,
+    required: true,
   }
 })
 
-const options = parseComponent(props.component)
+const withManual = computed(() => {
+  return merge(props.meta, props.manual as ManualApiOptions)
+})
 
-const withManual = merge(options, props.manual as ManualApiOptions)
-
-const { t, te, fallbackLocale } = useI18n()
-
-const translateIfExistsWithFallback = (key: string) => te(key) || te(key, fallbackLocale.value as string)
-
-function getTranslation (type: string, name: string): string {
+function getDescription (type: APIDescriptionType, name: string): string {
   const nameCamel = camelCase(name)
-  // if (custom && translateIfExistsWithFallback(custom)) { return custom }
 
-  const componentTranslation = `api.${props.componentName}.${type}.${nameCamel}`
-
-  if (translateIfExistsWithFallback(componentTranslation)) {
-    return componentTranslation
-  }
-
-  const allTranslation = `api.all.${type}.${nameCamel}`
-  if (translateIfExistsWithFallback(allTranslation)) {
-    return allTranslation
-  }
-
-  return ''
+  return props.descriptionOptions?.[type]?.[nameCamel]
+    ?? (commonDescription[type] as Record<string, string>)[nameCamel]
+    ?? '';
 }
 
 const cleanDefaultValue = (o: Record<string, any> | string) => {
@@ -72,42 +73,70 @@ const cleanDefaultValue = (o: Record<string, any> | string) => {
   return str
 }
 
-const propsOptions = Object
-  .entries(withManual.props || {})
+const propsOptions = computed(() => {
+  if (!withManual.value.props) { return [] }
+
+  return Object
+    .entries(withManual.value.props)
+    .filter(([name, prop]) => !prop.hidden)
+    .map(([name, prop]) => ({
+      name: name,
+      description: getDescription('props', name),
+      types: '`' + prop.types + '`',
+      default: cleanDefaultValue(prop.default),
+    }))
+    .sort((a, b) => (a.name || '').localeCompare(b.name))
+  }
+)
+
+const eventsOptions = computed(() => Object
+  .entries(withManual.value.events || {})
   .filter(([key, prop]) => !prop.hidden)
   .map(([key, prop]) => ({
-    name: { name: key, ...prop },
-    description: t(getTranslation('props', key)),
-    types: '`' + prop.types + '`',
-    default: cleanDefaultValue(prop.default),
+    name: key,
+    description: prop.types && typeof prop.types === 'string'
+      ? {
+          text: getDescription('events', key) + '. ' + getDescription('events', 'eventArgument'),
+          code: prop.types
+        }
+      : getDescription('events', key)
   }))
+  .sort((a, b) => {
+    return a.name.localeCompare(b.name)
+  })
+)
 
-const eventsOptions = Object
-  .entries(withManual.events || {})
-  .filter(([key, prop]) => !prop.hidden)
+const slotsOptions = computed(() => Object
+  .entries(withManual.value.slots || {})
   .map(([key, prop]) => ({
     name: key,
-    description: t(getTranslation('events', key)),
+    description: prop.types
+      ? {
+          text: getDescription('slots', key) + '. ' + getDescription('slots', 'scopeAvailable'),
+          code: prop.types
+        }
+      : getDescription('slots', key)
   }))
+  .sort((a, b) => {
+    return a.name.localeCompare(b.name)
+  })
+)
 
-const slotsOptions = Object
-  .entries(withManual.slots || {})
+const methodsOptions = computed(() => Object
+  .entries(withManual.value.methods || {})
   .map(([key, prop]) => ({
     name: key,
-    description: t(getTranslation('slots', key)),
+    description: getDescription('methods', key),
   }))
+  .sort((a, b) => {
+    return a.name.localeCompare(b.name)
+  })
+)
 
-const methodsOptions = Object
-  .entries(withManual.methods || {})
-  .map(([key, prop]) => ({
-    name: key,
-    description: t(getTranslation('methods', key)),
-  }))
-
-const cssVariablesOptions = props.cssVariables.map(([name, value, comment]) => ({
+const cssVariablesOptions = computed(() => props.cssVariables.map(([name, value, comment]) => ({
   name, value, /* comment */ // TODO: Enable comment when everywhere is used correct comments
   // TODO: Or add tanslations after i18n splitted
-}))
+})))
 </script>
 
 <template>
@@ -118,10 +147,10 @@ const cssVariablesOptions = props.cssVariables.map(([name, value, comment]) => (
       :columns="['Name', 'Description', 'Types', 'Default']"
       :data="propsOptions"
     >
-      <template #name="{ data }">
-        <strong>{{ data.name }}</strong>
+      <template #name="{ value, row }">
+        <strong>{{ value }}</strong>
         <va-badge
-          v-if="data.required"
+          v-if="row.required"
           class="ml-2"
           text="required"
           color="primary"
@@ -156,11 +185,11 @@ const cssVariablesOptions = props.cssVariables.map(([name, value, comment]) => (
       :columns="['Name', 'Default Value']"
       :data="cssVariablesOptions"
     >
-      <template #name="{ data }">
-        <strong class="va-text-code">{{ data }}</strong>
+      <template #name="{ value }">
+        <strong class="va-text-code">{{ value }}</strong>
       </template>
-      <template #value="{ data }">
-        <span class="va-text-code va-text-secondary">{{ data }}</span>
+      <template #value="{ value }">
+        <span class="va-text-code va-text-secondary">{{ value }}</span>
       </template>
     </ApiTable>
   </va-content>

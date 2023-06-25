@@ -1,5 +1,5 @@
 <template>
-  <div style="display: flex; align-items: center;">
+  <div class="flex items-center">
     <va-badge
       class="mr-6"
       text="New"
@@ -36,7 +36,7 @@
     <va-badge overlap>
       <template #text>
         <va-icon
-          name="mdi-bell"
+          name="notifications"
           size="12px"
         /> 5+
       </template>

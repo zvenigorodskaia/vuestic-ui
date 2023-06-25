@@ -9,7 +9,7 @@
         v-if="multiplySelectAvailable"
         class="va-data-table__table-cell-checkbox"
         :model-value="$props.severalRowsSelected ? 'idl' : $props.allRowsSelected"
-        :aria-label="t('selectAllRows')"
+        :aria-label="tp($props.ariaSelectAllRowsLabel)"
         :true-value="true"
         :false-value="false"
         :color="$props.selectedColor"
@@ -98,6 +98,9 @@ export default defineComponent({
     sortBySync: { type: String, required: true },
     sortingOrderIconName: { type: String as PropType<TSortIcon>, required: true },
     sortingOrderSync: { type: String as PropType<DataTableSortingOrder | null>, default: null },
+
+    ariaSelectAllRowsLabel: { type: String, default: '$t:selectAllRows' },
+    ariaSortColumnByLabel: { type: String, default: '$t:sortColumnBy' },
   },
 
   emits: [
@@ -106,7 +109,7 @@ export default defineComponent({
   ],
 
   setup (props, { emit }) {
-    const { t } = useTranslation()
+    const { t, tp } = useTranslation()
 
     const {
       getFooterCSSVariables,
@@ -120,7 +123,7 @@ export default defineComponent({
         ? props.sortingOrderSync === 'asc' ? 'ascending' : 'descending'
         : 'none') as 'none' | 'ascending' | 'descending'
 
-      const ariaLabel = column.sortable ? t('sortColumnBy', { name: column.label }) : undefined
+      const ariaLabel = column.sortable ? tp(props.ariaSortColumnByLabel, { name: column.label }) : undefined
 
       return {
         'aria-sort': ariaSort,
@@ -137,7 +140,11 @@ export default defineComponent({
     const toggleBulkSelection = () => emit('toggleBulkSelection')
 
     const getColumnStyles = (column: DataTableColumnInternal) => {
-      return [props.isFooter ? getFooterCSSVariables(column) : getHeaderCSSVariables(column), getStyle(column.thStyle)]
+      return [
+        column.width ? { minWidth: column.width, maxWidth: column.width } : {},
+        props.isFooter ? getFooterCSSVariables(column) : getHeaderCSSVariables(column),
+        getStyle(column.thStyle),
+      ]
     }
 
     const slotNameComputed = computed(() => props.isFooter ? 'footer' : 'header')
@@ -145,7 +152,7 @@ export default defineComponent({
     const multiplySelectAvailable = computed(() => props.selectMode === 'multiple')
 
     return {
-      t,
+      tp,
       getClass,
       sortByColumn,
       getColumnStyles,
@@ -162,48 +169,50 @@ export default defineComponent({
 @import "../../../styles/resources/index.scss";
 @import "../variables";
 
-.va-data-table__table-th {
-  padding: var(--va-data-table-cell-padding);
-  width: var(--va-data-table-width);
-  min-width: var(--va-data-table-width);
-  text-align: var(--va-data-table-align);
-  vertical-align: var(--va-data-table-vertical-align);
-  font-size: var(--va-data-table-thead-font-size);
-  line-height: var(--va-data-table-thead-line-height);
-  font-weight: var(--va-data-table-thead-font-weight);
-  text-transform: var(--va-data-table-thead-text-transform);
-  letter-spacing: var(--va-data-table-thead-letter-spacing);
-  cursor: var(--va-data-table-cursor);
+.va-data-table .va-data-table__table {
+  .va-data-table__table-th {
+    padding: var(--va-data-table-cell-padding);
+    width: var(--va-data-table-width);
+    min-width: var(--va-data-table-width);
+    text-align: var(--va-data-table-align);
+    vertical-align: var(--va-data-table-vertical-align);
+    font-size: var(--va-data-table-thead-font-size);
+    line-height: var(--va-data-table-thead-line-height);
+    font-weight: var(--va-data-table-thead-font-weight);
+    text-transform: var(--va-data-table-thead-text-transform);
+    letter-spacing: var(--va-data-table-thead-letter-spacing);
+    cursor: var(--va-data-table-cursor);
 
-  .va-data-table__table-th-wrapper {
-    display: flex;
-    align-items: center;
+    .va-data-table__table-th-wrapper {
+      display: flex;
+      align-items: center;
 
-    @include keyboard-focus-outline($offset: 2px);
-  }
-
-  .va-data-table__table-th-sorting-icon {
-    opacity: 0;
-    user-select: none;
-    pointer-events: none;
-
-    &.active {
-      opacity: 1;
-      pointer-events: initial;
+      @include keyboard-focus-outline($offset: 2px);
     }
 
-    &:focus-visible {
-      opacity: 1;
+    .va-data-table__table-th-sorting-icon {
+      opacity: 0;
+      user-select: none;
+      pointer-events: none;
+
+      &.active {
+        opacity: 1;
+        pointer-events: initial;
+      }
+
+      &:focus-visible {
+        opacity: 1;
+      }
     }
-  }
 
-  span {
-    flex-grow: 1;
-  }
+    span {
+      flex-grow: 1;
+    }
 
-  &:hover {
-    .va-data-table__table-th-sorting-icon:not(.active, :focus-visible) {
-      opacity: var(--va-data-table-hover-th-opacity);
+    &:hover {
+      .va-data-table__table-th-sorting-icon:not(.active, :focus-visible) {
+        opacity: var(--va-data-table-hover-th-opacity);
+      }
     }
   }
 }

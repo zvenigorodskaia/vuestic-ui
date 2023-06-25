@@ -4,17 +4,6 @@ export default defineNuxtConfig({
     head: {
       link: [
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
-        { rel: 'icon', type: 'image/png', href: '/favicon.png' },
-        { rel: 'preconnect', href: 'https://fonts.gstatic.com' },
-        { rel: 'stylesheet', href: "https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600,700&display=swap" },
-        { rel: 'stylesheet', href: "https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400&display=swap" },
-        { rel: 'stylesheet', href: "https://fonts.googleapis.com/icon?family=Material+Icons&display=swap" },
-        { rel: 'stylesheet', href: "https://fonts.googleapis.com/icon?family=Material+Icons+Outlined&display=swap" },
-      ],
-
-      script: [
-        { crossorigin: 'anonymous', src: 'https://kit.fontawesome.com/5460c87b2a.js' },
-        { type: 'module', src: 'https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js' },
       ],
 
       meta: [
@@ -76,25 +65,25 @@ export default defineNuxtConfig({
     },
   },
 
-  // TODO: hydration mismatch issues; tailwind doesn't work properly
-  // ssr: false,
-  // nitro: {
-  //   prerender: {
-  //     routes: ['/'],
-  //     ignore: ['/*']
-  //   }
-  // },
+  ssr: true,
+  nitro: {
+    compressPublicAssets: true,
+  },
+
+  googleAnalytics: {
+    id: process.env.GOOGLE_ANALYTICS_ID,
+  },
 
   modules: [
-    // './modules/banner',
+    './modules/google-analytics',
+    './modules/banner',
     './modules/vuestic',
     './modules/page-config',
-    // "./modules/i18n",
-    // TODO: remove after i18n is released https://github.com/nuxt-modules/i18n/pull/1712
-    '@nuxtjs/i18n-edge',
+    '@nuxtjs/google-fonts',
     './modules/markdown',
     '@nuxtjs/tailwindcss',
     '@nuxtjs/color-mode',
+    '@funken-studio/sitemap-nuxt-3'
   ],
 
   vuestic: {
@@ -102,8 +91,27 @@ export default defineNuxtConfig({
     fonts: false,
   },
 
+  googleFonts: {
+    preload: true,
+    prefetch: true,
+    preconnect: true,
+    display: 'swap',
+    families: {
+      'Source+Sans+Pro': {
+        wght: [400, 600, 700],
+      },
+      'Source+Code+Pro': {
+        wght: [400],
+      },
+      'Material+Icons': true,
+      'Material+Icons+Outlined': true,
+    },
+  },
+
   tailwindcss: {
+    viewer: false,
     config: {
+      important: true,
       content: [
         "./components/**/*.{js,vue,ts}",
         "./page-config/**/*.{js,vue,ts}",
@@ -112,45 +120,6 @@ export default defineNuxtConfig({
         "./modules/page-config/blocks/**/*.{js,ts}",
         "./app.vue",
       ]
-    }
-  },
-
-  i18n: {
-    locales: [
-      {
-        code: 'en',
-        name: 'English',
-        status: 'full',
-        translationPath: 'translation.language.en',
-        file: 'en.json',
-      },
-      {
-        code: 'ru',
-        name: 'Русский',
-        status: 'full',
-        translationPath: 'translation.language.ru',
-        file: 'ru.json',
-      },
-      // GENERATOR_ADD - language
-    ],
-
-    defaultLocale: 'en',
-
-    strategy: 'prefix_and_default',
-
-    detectBrowserLanguage: {
-      redirectOn: 'all',
-      alwaysRedirect: true,
-      useCookie: true,
-      cookieKey: 'i18n_locale',
-    },
-
-    lazy: true,
-
-    langDir: 'locales/',
-
-    vueI18n: {
-      fallbackLocale: 'en',
     }
   },
 
@@ -167,10 +136,18 @@ export default defineNuxtConfig({
   ],
 
   vite: {
+    define: {
+      __VUE_I18N_FULL_INSTALL__: true,
+    },
+    optimizeDeps: { exclude: ["fsevents"] },
     resolve: {
       alias: [
         { find: '~@ag-grid-community', replacement: ('@ag-grid-community') }
       ]
     }
   },
+
+  sitemap: {
+    hostname: 'https://example.com',
+  }
 });

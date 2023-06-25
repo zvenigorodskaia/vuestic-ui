@@ -1,9 +1,9 @@
+import MagicString from 'magic-string';
 import { addVitePlugin } from '@nuxt/kit';
 import { createFilter } from '@rollup/pluginutils'
 import { createImporter } from '../compiler/create-importer'
-import { resolve } from 'path'
+import { resolve } from 'pathe'
 import { transform } from '../compiler/transform'
-import { exportTranslations } from '../i18n/export-translations'
 
 export const useCompiler = (options: any) => {
   const filter = createFilter(options.include, options.exclude)
@@ -23,16 +23,21 @@ export const useCompiler = (options: any) => {
       importer.importNamed('definePageConfig', (await this.resolve(runtimePath))!.id)
       importer.importNamed('defineManualApi', (await this.resolve(runtimePath))!.id)
 
+      const newCode = new MagicString(code)
+
       try {
-        code = await transform(code, importer)
+        newCode.overwrite(0, code.length, await transform(code, importer))
       } catch (e: any) {
         throw new Error(`Error transforming page-config: ${id}\n${e.message}`)
       }
 
-      code += '\n' + await exportTranslations(importer, id)
+      newCode.prepend(importer.imports)
 
       try {
-        return importer.imports + code
+        return {
+          code: newCode.toString(),
+          map: newCode.generateMap({ hires: true }),
+        }
       } catch (e: any) {
         throw new Error(`Error resolving imports in page-config: ${id}\n${e.message}`)
       }

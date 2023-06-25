@@ -99,7 +99,7 @@
 <script lang="ts">
 import { defineComponent, ref, toRefs, computed, watch, type PropType } from 'vue'
 
-import { useFormProps } from '../../../../composables'
+import { useFormFieldProps } from '../../../../composables'
 
 import { VaBadge, VaIcon } from '../../../index'
 
@@ -111,12 +111,12 @@ export default defineComponent({
   components: { VaBadge, VaIcon },
 
   props: {
-    ...useFormProps,
+    ...useFormFieldProps,
 
     value: { type: Array as PropType<SelectOption[]>, required: true },
     valueString: { type: String },
     placeholder: { type: String, default: '' },
-    tabindex: { type: Number, default: 0 },
+    tabindex: { type: [String, Number], default: 0 },
     hiddenSelectedOptionsAmount: { type: Number, default: 0 },
     isAllOptionsShown: { type: Boolean, default: false },
     autocomplete: { type: Boolean, default: false },

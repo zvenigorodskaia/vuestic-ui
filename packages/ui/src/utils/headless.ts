@@ -37,7 +37,7 @@ const toNode = (v: any, attrs: NodeAttributes): VNode | null => {
 
   if (v.type === Fragment) {
     if (v.children === null) { return v }
-    return toNode(v.children[0], attrs)
+    return h(Fragment, v.props, v.children.map((v: any) => toNode(v, attrs)))
   }
 
   return h(v, attrs)
@@ -51,4 +51,13 @@ export const renderSlotNode = (slot: Slot | undefined, slotBind: any = {}, nodeA
 
   // Convert to Node first non-comment child or first child
   return toNode(children.find((v) => v.type !== Comment) || children[0], nodeAttributes)
+}
+
+export const renderSlotNodes = (slot: Slot | undefined, slotBind: any = {}, nodeAttributes: NodeAttributes = {}) => {
+  const children = slot?.(slotBind)
+
+  if (!children) { return null }
+
+  // Convert to Node first non-comment child or first child
+  return children.map((v) => toNode(v, nodeAttributes))
 }
